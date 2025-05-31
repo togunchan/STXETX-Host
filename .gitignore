@@ -1,0 +1,98 @@
+# ----------------------------
+# General System and IDE Temporary Files
+# ----------------------------
+
+# macOS thumbnail / metadata
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows Thumbs.db
+Thumbs.db
+
+# GNOME and Linux thumbnails
+.thumbnail/
+*~
+
+# Swap / temp files (Vim, VSCode, etc.)
+*.swp
+*.swo
+*.tmp
+*.temp
+
+# VSCode directory
+.vscode/
+
+# JetBrains IDEs (CLion, IntelliJ, etc.)
+.idea/
+*.iml
+
+# ----------------------------
+# CMake and Build Outputs
+# ----------------------------
+
+# Ignore the entire build directory
+/build/
+
+# CMake-generated files
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+install_manifest.txt
+
+# CTest and related files
+Testing/
+
+# Compilation artifacts (.o, .obj, .so, .a, .dylib, .exe, etc.)
+*.o
+*.obj
+*.so
+*.a
+*.dll
+*.dylib
+*.exe
+
+# MinGW or WSL-generated executables
+*.exe
+*.ilk
+
+# ----------------------------
+# Logs, Compiler Cache, and Reports
+# ----------------------------
+
+# spdlog output, application log files
+*.log
+
+# Valgrind, gcov, lcov, coverage reports
+*.gcda
+*.gcno
+coverage.info
+coverage.*
+
+# ----------------------------
+# Test / Temporary Resource Files
+# ----------------------------
+
+# Catch2 temporary build files (if stored as a CMake subproject)
+third_party/catch2/build/
+
+# spdlog example build directory
+third_party/spdlog/build/
+
+# Ignore local test data or sample output files if applicable
+# Example: tests/output/
+tests/output/
+
+# ----------------------------
+# Project-Specific Files
+# ----------------------------
+
+# Temporary files generated during application execution
+*.pid
+*.seed
+*.bak
+*.backup
+
+# User-specific settings / credential files (if present)
+*.env
