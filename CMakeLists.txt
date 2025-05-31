@@ -16,6 +16,9 @@ add_subdirectory(third_party/catch2)
 #    (Adds the include directory from the project root to the include path)
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
+# 2.5) Enable CTest support so that add_test(...) commands in subdirectories are registered
+enable_testing()  # <--- Bu satır test desteğini açıyor
+
 # 3) Collect all .cpp files inside src/ for compilation
 #    (file(GLOB ...) gathers files matching the specified pattern)
 file(GLOB SOURCES "${PROJECT_SOURCE_DIR}/src/*.cpp")
