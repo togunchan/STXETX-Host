@@ -13,8 +13,13 @@ add_executable(SerialCommHostTests ${TEST_SOURCES})
 
 # Link Catch2 and spdlog libraries
 # (Catch2 is used for unit testing, and spdlog provides logging capabilities)
-target_link_libraries(SerialCommHostTests PRIVATE Catch2::Catch2WithMain spdlog::spdlog)
+target_link_libraries(SerialCommHostTests 
+    PRIVATE 
+    Catch2::Catch2WithMain 
+    spdlog::spdlog
+    SerialCommHostLib
+    )
 
 # Enable CTest support to allow running tests with the `ctest` command
 include(CTest)
-add_test(NAME AllTests COMMAND SerialCommHostTests)
+add_test(NAME AllTests COMMAND $<TARGET_FILE:SerialCommHostTests>)

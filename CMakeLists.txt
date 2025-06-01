@@ -2,35 +2,37 @@
 cmake_minimum_required(VERSION 3.14)
 project(SerialCommHost LANGUAGES CXX)
 
-# Use C++17 standard
-# (This ensures all targets are compiled with -std=c++17)
+# Use the C++17 standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# 1) Add third-party libraries: spdlog and catch2
-#    (These directories will be prepared later via git submodule or manual download)
+# 1) Add third-party libraries: spdlog and Catch2
 add_subdirectory(third_party/spdlog)
 add_subdirectory(third_party/catch2)
 
-# 2) Include the "include" directory to access header files
-#    (Adds the include directory from the project root to the include path)
+# 2) Include the "include" directory so that headers can be found
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
-# 2.5) Enable CTest support so that add_test(...) commands in subdirectories are registered
-enable_testing()  # <--- Bu satır test desteğini açıyor
+# 2.5) Enable CTest: This activates add_test(...) calls inside tests/CMakeLists.txt
+enable_testing()
 
-# 3) Collect all .cpp files inside src/ for compilation
-#    (file(GLOB ...) gathers files matching the specified pattern)
-file(GLOB SOURCES "${PROJECT_SOURCE_DIR}/src/*.cpp")
+# 3) Collect all .cpp files inside src/ for compilation into a library
+file(GLOB SRC_SOURCES "${PROJECT_SOURCE_DIR}/src/*.cpp")
 
-# 4) Create the executable target
-#    - The name of our serial communication host application: SerialCommHostApp
-add_executable(SerialCommHostApp ${SOURCES})
+# 4) Create a static library that compiles all modules together
+add_library(SerialCommHostLib STATIC ${SRC_SOURCES})
 
-# 5) Link the spdlog library
-#    (Since the logger module depends on spdlog, we link it to the executable)
-target_link_libraries(SerialCommHostApp PRIVATE spdlog::spdlog)
+# 5) If the Logger module uses spdlog, link spdlog to this library
+target_link_libraries(SerialCommHostLib PRIVATE spdlog::spdlog)
 
-# 6) Add the tests/ directory to include unit tests in later stages
-#    (Configuration will be handled in tests/CMakeLists.txt)
+
+# 6) Create the main application executable (only src/main.cpp)
+add_executable(SerialCommHostApp
+    src/main.cpp
+)
+
+# 7) Link the application to the SerialCommHostLib library
+target_link_libraries(SerialCommHostApp PRIVATE SerialCommHostLib)
+
+# 8) Add the tests/ subdirectory to include test configuration
 add_subdirectory(tests)
