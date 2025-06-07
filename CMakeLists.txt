@@ -25,7 +25,6 @@ add_library(SerialCommHostLib STATIC ${SRC_SOURCES})
 # 5) If the Logger module uses spdlog, link spdlog to this library
 target_link_libraries(SerialCommHostLib PRIVATE spdlog::spdlog)
 
-
 # 6) Create the main application executable (only src/main.cpp)
 add_executable(SerialCommHostApp
     src/main.cpp
@@ -33,6 +32,10 @@ add_executable(SerialCommHostApp
 
 # 7) Link the application to the SerialCommHostLib library
 target_link_libraries(SerialCommHostApp PRIVATE SerialCommHostLib)
+
+# 7.1) Stand-alone round-trip test
+add_executable(test_Main src/test_Main.cpp)
+target_link_libraries(test_Main PRIVATE SerialCommHostLib)
 
 # 8) Add the tests/ subdirectory to include test configuration
 add_subdirectory(tests)
