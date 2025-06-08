@@ -7,6 +7,9 @@
 #include <fcntl.h>
 #include <termios.h>
 #include <iostream>
+#include <string>
+#include <iomanip>
+#include <sstream>
 
 using namespace SerialComm;
 
@@ -79,8 +82,14 @@ int main(int argc, char *argv[])
     // Read one byte at a time
     while (true)
     {
+        Logger::debug("I am in while loop. Waiting for data...");
         uint8_t byte;
         ssize_t bytesRead = read(serialFd, &byte, 1);
+
+        std::stringstream ss;
+        ss << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(byte);
+        Logger::info("The read byte is 0x" + ss.str());
+
         if (bytesRead < 0)
         {
             Logger::error("Serial read error");
@@ -88,11 +97,13 @@ int main(int argc, char *argv[])
         }
         if (bytesRead == 0)
         {
+            Logger::debug("No data received");
             continue;
         }
 
         try
         {
+            Logger::debug("Received byte: " + std::to_string(bytesRead));
             ring.push(byte);
         }
         catch (const std::exception &e)
@@ -101,18 +112,24 @@ int main(int argc, char *argv[])
             return 1;
         }
 
+        Logger::debug("pushed byte to ring buffer");
+
+        std::stringstream ssHex;
+        ssHex << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(byte);
+        Logger::debug("Feeding parser byte 0x" + ssHex.str() + " (" + std::to_string(static_cast<int>(byte)) + ")");
         auto parsedData = parser.push(byte);
 
+        Logger::debug("byte parsed into parsedData");
+        Logger::debug("parsedData has value" + std::to_string(parsedData.has_value()));
         if (parsedData.has_value())
         {
             const std::vector<uint8_t> &payload = parsedData.value();
 
-            std::cout << "Received payload: ";
             for (uint8_t b : payload)
             {
-                std::cout << " " << std::hex << static_cast<int>(b);
+                ss << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(b);
+                Logger::debug("The read payload byte is 0x" + ss.str());
             }
-            std::cout << std::dec << std::endl;
             Logger::info("Payload parsed successfully");
 
             auto ackFrame = encode({0x06});
@@ -121,6 +138,18 @@ int main(int argc, char *argv[])
             {
                 Logger::error("Serial write error");
                 return 1;
+            }
+            else if (bytesWritten == ackFrame.size())
+            {
+                std::ostringstream oss;
+                oss << std::hex << std::uppercase;
+                for (auto byte : ackFrame)
+                    oss << " 0x" << std::setw(2) << std::setfill('0') << int(byte);
+                Logger::info("Sent ACK bytes:" + oss.str());
+            }
+            else
+            {
+                Logger::error("Partial ACK write: " + std::to_string(bytesWritten));
             }
             Logger::info("ACK frame sent");
         }
