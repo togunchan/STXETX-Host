@@ -2,6 +2,7 @@
 #include "../include/RingBuffer.hpp"
 #include "../include/FrameParser.hpp"
 #include "../include/FrameEncoder.hpp"
+#include "../include/ReceiverThread.hpp"
 #include <csignal>
 #include <unistd.h>
 #include <fcntl.h>
@@ -9,24 +10,21 @@
 #include <iostream>
 #include <string>
 #include <iomanip>
-#include <sstream>
 
 using namespace SerialComm;
 
 // Global serial port desciptor
 static int serialFd = -1;
 
+ReceiverThread *gReceiverPtr = nullptr;
+volatile std::sig_atomic_t running = 1;
+
 // Signal handler for SIGINT (Ctrl+C).
 // The integer parameter represents the received signal, but it's unused in this function.
 // It remains unnamed to avoid compiler warnings about usnused variables.
 void cleanup(int)
 {
-    if (serialFd >= 0)
-    {
-        close(serialFd);
-    }
-    Logger::info("Serial port closed.");
-    exit(0);
+    running = 0;
 }
 
 int main(int argc, char *argv[])
@@ -34,11 +32,11 @@ int main(int argc, char *argv[])
     Logger::init("serial_comm.log");
     Logger::info("Application started.");
 
-    std::signal(SIGINT, cleanup);
-
     // open serial port
     const char *device = (argc > 1) ? argv[1] : "/dev/ttyUSB0";
     serialFd = open(device, O_RDWR | O_NOCTTY /*| O_NDELAY */);
+    tcflush(serialFd, TCIFLUSH); // Flush input buffer
+    Logger::info("Serial input buffer flushed.");
     if (serialFd < 0)
     {
         Logger::error(std::string("Failed to open serial port: ") + device);
@@ -74,45 +72,35 @@ int main(int argc, char *argv[])
         Logger::error("tcsetattr failed");
         return 1;
     }
+    tcflush(serialFd, TCIFLUSH); // Flush input buffer
+    Logger::info("Serial input buffer flushed.");
     Logger::info("Serial port configured: 115200 8N1");
 
     FrameParser parser;
     RingBuffer<1024> ring;
+    ReceiverThread receiver;
+    gReceiverPtr = &receiver;
 
-    // Read one byte at a time
-    while (true)
+    std::signal(SIGINT, cleanup);
+
+    receiver.start(serialFd, ring);
+
+    while (running)
     {
-        Logger::debug("I am in while loop. Waiting for data...");
         uint8_t byte;
-        ssize_t bytesRead = read(serialFd, &byte, 1);
-
-        std::stringstream ss;
-        ss << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(byte);
-        Logger::info("The read byte is 0x" + ss.str());
-
-        if (bytesRead < 0)
-        {
-            Logger::error("Serial read error");
-            return 1;
-        }
-        if (bytesRead == 0)
-        {
-            Logger::debug("No data received");
-            continue;
-        }
-
         try
         {
-            Logger::debug("Received byte: " + std::to_string(bytesRead));
-            ring.push(byte);
+            byte = ring.pop();
+            std::stringstream ss;
+            ss << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(byte);
+            Logger::info("The popped byte is 0x" + ss.str());
         }
         catch (const std::exception &e)
         {
-            Logger::error(std::string("Ring buffer overflow") + e.what());
-            return 1;
+            Logger::debug("Ring buffer empty");
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            continue;
         }
-
-        Logger::debug("pushed byte to ring buffer");
 
         std::stringstream ssHex;
         ssHex << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(byte);
@@ -127,6 +115,7 @@ int main(int argc, char *argv[])
 
             for (uint8_t b : payload)
             {
+                std::stringstream ss;
                 ss << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(b);
                 Logger::debug("The read payload byte is 0x" + ss.str());
             }
@@ -154,6 +143,14 @@ int main(int argc, char *argv[])
             Logger::info("ACK frame sent");
         }
     }
-    cleanup(0);
+    receiver.stop();
+
+    if (serialFd >= 0)
+    {
+        close(serialFd);
+        Logger::info("Serial port closed");
+    }
+
+    Logger::info("Application stopped.");
     return 0;
 }

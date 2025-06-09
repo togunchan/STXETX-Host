@@ -18,6 +18,7 @@ enable_testing()
 
 # 3) Collect all .cpp files inside src/ for compilation into a library
 file(GLOB SRC_SOURCES "${PROJECT_SOURCE_DIR}/src/*.cpp")
+list(REMOVE_ITEM SRC_SOURCES "${PROJECT_SOURCE_DIR}/src/main.cpp")
 
 # 4) Create a static library that compiles all modules together
 add_library(SerialCommHostLib STATIC ${SRC_SOURCES})
